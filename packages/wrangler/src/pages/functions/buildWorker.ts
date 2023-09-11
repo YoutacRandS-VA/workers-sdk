@@ -4,17 +4,13 @@ import { join, resolve } from "node:path";
 import { build as esBuild } from "esbuild";
 import { nanoid } from "nanoid";
 import { bundleWorker } from "../../deployment-bundle/bundle";
-import { findAdditionalModules } from "../../deployment-bundle/find-additional-modules";
-import {
-	createModuleCollector,
-	noopModuleCollector,
-} from "../../deployment-bundle/module-collection";
+import { createModuleCollector } from "../../deployment-bundle/module-collection";
 import { FatalError } from "../../errors";
 import { logger } from "../../logger";
 import { getBasePath } from "../../paths";
+import type { Rule } from "../../config/environment";
 import type { BundleResult } from "../../deployment-bundle/bundle";
 import type { Entry } from "../../deployment-bundle/entry";
-import type { CfModule } from "../../deployment-bundle/worker";
 import type { Plugin } from "esbuild";
 
 export type Options = {
@@ -61,7 +57,6 @@ export function buildWorkerFromFunctions({
 
 	return bundleWorker(entry, outdir ? resolve(outdir) : resolve(outfile), {
 		bundle: true,
-		additionalModules: [],
 		moduleCollector,
 		inject: [routesModule],
 		...(outdir ? { entryName: "index" } : {}),
@@ -165,7 +160,7 @@ export type RawOptions = {
 	outdir?: string;
 	directory: string;
 	bundle?: boolean;
-	external?: string[];
+	rules?: Rule[];
 	minify?: boolean;
 	sourcemap?: boolean;
 	watch?: boolean;
@@ -175,7 +170,6 @@ export type RawOptions = {
 	legacyNodeCompat?: boolean;
 	nodejsCompat?: boolean;
 	local: boolean;
-	additionalModules?: CfModule[];
 };
 
 /**
@@ -191,7 +185,7 @@ export function buildRawWorker({
 	outdir,
 	directory,
 	bundle = true,
-	external,
+	rules,
 	minify = false,
 	sourcemap = false,
 	watch = false,
@@ -200,7 +194,6 @@ export function buildRawWorker({
 	legacyNodeCompat,
 	nodejsCompat,
 	local,
-	additionalModules = [],
 }: RawOptions) {
 	const entry: Entry = {
 		file: workerScriptPath,
@@ -208,14 +201,16 @@ export function buildRawWorker({
 		format: "modules",
 		moduleRoot: resolve(directory),
 	};
-	const moduleCollector = external
-		? noopModuleCollector
-		: createModuleCollector({ entry, findAdditionalModules: false });
+	const moduleCollector = createModuleCollector({
+		entry,
+		findAdditionalModules: true,
+		rules,
+	});
 
 	return bundleWorker(entry, outdir ? resolve(outdir) : resolve(outfile), {
 		bundle,
+		entryName: outfile,
 		moduleCollector,
-		additionalModules,
 		minify,
 		sourcemap,
 		watch,
@@ -223,26 +218,7 @@ export function buildRawWorker({
 		nodejsCompat,
 		define: {},
 		doBindings: [], // Pages functions don't support internal Durable Objects
-		plugins: [
-			...plugins,
-			buildNotifierPlugin(onEnd),
-			...(external
-				? [
-						// In some cases, we want to enable bundling in esbuild so that we can flatten a shim around the entrypoint, but we still don't want to actually bundle in all the chunks that a Worker references.
-						// This plugin allows us to mark those chunks as external so they are not inlined.
-						{
-							name: "external-fixer",
-							setup(pluginBuild) {
-								pluginBuild.onResolve({ filter: /.*/ }, async (args) => {
-									if (external.includes(resolve(args.resolveDir, args.path))) {
-										return { path: args.path, external: true };
-									}
-								});
-							},
-						} as Plugin,
-				  ]
-				: []),
-		],
+		plugins: [...plugins, buildNotifierPlugin(onEnd)],
 		isOutfile: !outdir,
 		serveAssetsFromWorker: false,
 		checkFetch: local,
@@ -253,43 +229,32 @@ export function buildRawWorker({
 
 export async function traverseAndBuildWorkerJSDirectory({
 	workerJSDirectory,
-	buildOutputDirectory,
 	nodejsCompat,
 }: {
 	workerJSDirectory: string;
-	buildOutputDirectory: string;
 	nodejsCompat?: boolean;
 }): Promise<BundleResult> {
 	const entrypoint = resolve(join(workerJSDirectory, "index.js"));
 
-	const additionalModules = await findAdditionalModules(
+	const rules: Rule[] = [
 		{
-			file: entrypoint,
-			directory: resolve(workerJSDirectory),
-			format: "modules",
-			moduleRoot: resolve(workerJSDirectory),
+			type: "ESModule",
+			globs: ["**/*.js", "**/*.mjs"],
 		},
-		[
-			{
-				type: "ESModule",
-				globs: ["**/*.js", "**/*.mjs"],
-			},
-		]
-	);
+	];
 
 	const outfile = join(tmpdir(), `./bundledWorker-${Math.random()}.mjs`);
 	const bundleResult = await buildRawWorker({
 		workerScriptPath: entrypoint,
 		bundle: true,
-		external: additionalModules.map((m) => join(workerJSDirectory, m.name)),
+		rules,
 		outfile,
-		directory: buildOutputDirectory,
+		directory: workerJSDirectory,
 		local: false,
 		sourcemap: true,
 		watch: false,
 		onEnd: () => {},
 		nodejsCompat,
-		additionalModules,
 	});
 
 	return {

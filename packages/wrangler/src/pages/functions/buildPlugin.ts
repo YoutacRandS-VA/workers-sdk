@@ -32,7 +32,6 @@ export function buildPluginFromFunctions({
 		resolve(outdir),
 		{
 			bundle: true,
-			additionalModules: [],
 			moduleCollector: noopModuleCollector,
 			inject: [routesModule],
 			entryName: "index",

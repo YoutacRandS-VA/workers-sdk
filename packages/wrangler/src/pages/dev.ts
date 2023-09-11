@@ -275,7 +275,6 @@ export const Handler = async ({
 		const runBuild = async () => {
 			const bundleResult = await traverseAndBuildWorkerJSDirectory({
 				workerJSDirectory: workerScriptPath,
-				buildOutputDirectory: directory ?? ".",
 				nodejsCompat,
 			});
 			modules = bundleResult.modules;
