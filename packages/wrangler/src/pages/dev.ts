@@ -312,7 +312,6 @@ export const Handler = async ({
 						legacyNodeCompat,
 						local: true,
 						sourcemap: true,
-						watch: false,
 						onEnd: () => scriptReadyResolve(),
 					});
 				} catch (e: unknown) {
@@ -353,7 +352,6 @@ export const Handler = async ({
 					outfile: scriptPath,
 					functionsDirectory,
 					sourcemap: true,
-					watch: false,
 					onEnd,
 					buildOutputDirectory: directory,
 					legacyNodeCompat,
