@@ -182,10 +182,8 @@ describe("find_additional_modules deploy", () => {
 			      return new Response((await import(\\"./dynamic.js\\")).default);
 			    }
 			    if (url.pathname.startsWith(\\"/lang/\\")) {
-			      const language = url.pathname.substring(\\"/lang/\\".length);
-			      return new Response(
-			        (await import(\`./lang/\${language}.js\`)).default.hello
-			      );
+			      const language = \\"./lang/\\" + url.pathname.substring(\\"/lang/\\".length) + \\".js\\";
+			      return new Response((await import(language)).default.hello);
 			    }
 			    return new Response(\\"Not Found\\", { status: 404 });
 			  }

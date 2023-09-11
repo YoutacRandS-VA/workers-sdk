@@ -14,10 +14,10 @@ export default <ExportedHandler>{
 			return new Response((await import("./dynamic.js")).default);
 		}
 		if (url.pathname.startsWith("/lang/")) {
-			const language = url.pathname.substring("/lang/".length);
-			return new Response(
-				(await import(`./lang/${language}.js`)).default.hello
-			);
+			// Build the path dynamically to ensure esbuild doesn't inline the import.
+			const language =
+				"./lang/" + url.pathname.substring("/lang/".length) + ".js";
+			return new Response((await import(language)).default.hello);
 		}
 		return new Response("Not Found", { status: 404 });
 	},
