@@ -237,7 +237,7 @@ export async function traverseAndBuildWorkerJSDirectory({
 	];
 
 	const outfile = join(tmpdir(), `./bundledWorker-${Math.random()}.mjs`);
-	const bundleResult = await buildRawWorker({
+	return buildRawWorker({
 		workerScriptPath: entrypoint,
 		rules,
 		outfile,
@@ -247,15 +247,6 @@ export async function traverseAndBuildWorkerJSDirectory({
 		onEnd: () => {},
 		nodejsCompat,
 	});
-
-	return {
-		modules: bundleResult.modules,
-		dependencies: bundleResult.dependencies,
-		resolvedEntryPointPath: bundleResult.resolvedEntryPointPath,
-		bundleType: bundleResult.bundleType,
-		stop: bundleResult.stop,
-		sourceMapPath: bundleResult.sourceMapPath,
-	};
 }
 
 /**
