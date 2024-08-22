@@ -9,7 +9,7 @@
 	},
 	"devDependencies": {
 		"copy-webpack-plugin": "^5.0.3",
-		"exports-loader": "^0.7.0",
+		"exports-loader": "^5.0.0",
 		"shelljs": "^0.8.3",
 		"webpack": "^4.42.1",
 		"webpack-cli": "^4.9.0",
