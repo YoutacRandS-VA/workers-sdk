@@ -8,7 +8,7 @@ updates:
       #       too much noise, we are just setting it as daily for the time
       #       being to test the efficacy of the solution, we shall set it
       #       to "weekly" after a testing period of 1/2 weeks
-      interval: "daily"
+      interval: "5 minutes"
     versioning-strategy: increase
     # the following is used to add the [C3] prefix to the PR title,
     # we override the commit message but setting a prefix like this
@@ -34,7 +34,7 @@ updates:
           - "workerd"
           - "@cloudflare/workers-types"
     schedule:
-      interval: "daily"
+      interval: "5 minutes"
     versioning-strategy: increase
     assignees:
       - "@cloudflare/wrangler"
